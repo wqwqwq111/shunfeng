@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="快递查询系统">
+    <title>快递查询（简约版）</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* 顺丰风格头部 */
+        .header {
+            background: #ba0021;
+            color: white;
+            padding: 20px 15px;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo-icon {
+            font-size: 24px;
+        }
+        
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .date-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* 查询区域 */
+        .query-section {
+            padding: 20px 15px;
+            background: white;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-label {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background: #fafafa;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #ba0021;
+            background: white;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #ba0021;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #a0001a;
+        }
+        
+        /* 结果区域 */
+        .result-section {
+            padding: 0 15px 20px;
+            display: none;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+        
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .status-waiting {
+            background: #fef0f0;
+            color: #ba0021;
+        }
+        
+        .status-shipping {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+        
+        .status-arrived {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        
+        /* 时间线 */
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #ddd;
+        }
+        
+        .timeline-item {
+            margin-bottom: 20px;
+            position: relative;
+            opacity: 0.6;
+        }
+        
+        .timeline-item.active {
+            opacity: 1;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 0;
+            width: 15px;
+            height: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .timeline-item.active .timeline-dot {
+            border-color: #ba0021;
+            background: #ba0021;
+        }
+        
+        .timeline-item.completed .timeline-dot {
+            border-color: #52c41a;
+            background: #52c41a;
+        }
+        
+        .timeline-content {
+            padding-bottom: 5px;
+        }
+        
+        .timeline-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-date {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .update-info {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            padding-top: 15px;
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* 错误信息 */
+        .error-section {
+            padding: 20px 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .error-icon {
+            font-size: 40px;
+            color: #f5222d;
+            margin-bottom: 15px;
+        }
+        
+        .error-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .error-message {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* 加载状态 */
+        .loader {
+            text-align: center;
+            padding: 30px 0;
+            display: none;
+        }
+        
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ba0021;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .date-info {
+                align-self: flex-end;
+                margin-top: -20px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .header {
+                padding: 15px 12px;
+            }
+            
+            .query-section, .result-section, .error-section {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">📦</div>
+                    <div class="logo-text">快递查询</div>
+                </div>
+                <div class="date-info" id="dateInfo">基于系统日期</div>
+            </div>
+        </div>
+        
+        <!-- 查询区域 -->
+        <div class="query-section">
+            <div class="input-group">
+                <div class="input-label">快递单号</div>
+                <input type="text" 
+                       class="input-field"
+                       id="trackingNumber" 
+                       placeholder="请输入快递单号"
+                       autocomplete="off"
+                       spellcheck="false"
+                       autofocus>
+            </div>
+            
+            <button class="btn" onclick="checkExpressStatus()">
+                查询物流状态
+            </button>
+        </div>
+        
+        <!-- 加载状态 -->
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>查询中...</p>
+        </div>
+        
+        <!-- 查询结果 -->
+        <div class="result-section" id="resultSection">
+            <div class="result-header">
+                <div class="result-title">物流信息</div>
+                <div class="status-badge" id="currentStatus">已发货</div>
+            </div>
+            
+            <div class="timeline" id="timeline">
+                <!-- 时间线内容会动态生成 -->
+            </div>
+            
+            <div class="update-info" id="updateInfo">
+                最后查询: <span id="currentTime"></span>
+            </div>
+        </div>
+        
+        <!-- 错误信息 -->
+        <div class="error-section" id="errorSection">
+            <div class="error-icon">❌</div>
+            <div class="error-title">查询失败</div>
+            <div class="error-message">请输入正确的快递单号</div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置区域 ====================
+        const CONFIG = {
+            // 有效单号列表（大小写不敏感）
+            validTrackingNumbers: [
+                "SF2465846547154",
+                "SF123456",
+                "YT888888",
+                "EXP202601"
+            ],
+            
+            // 每个单号的发货日期（YYYY-MM-DD格式）
+            shippingDates: {
+                "SF2465846547154": "2026-01-19",  // 从1月19日开始计算
+                "SF123456": "2026-01-18",
+                "YT888888": "2026-01-17",
+                "EXP202601": "2026-01-20"
+            }
+        };
+        
+        // 获取当前时间的格式化字符串
+        function getCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        
+        // 获取当前日期的格式化字符串
+        function getCurrentDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 获取当前日期的星期几
+        function getCurrentWeekday() {
+            const now = new Date();
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            return weekdays[now.getDay()];
+        }
+        
+        // 更新显示的时间
+        function updateTimeDisplay() {
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                const currentTime = getCurrentTime();
+                timeElement.textContent = currentTime;
+            }
+        }
+        
+        // 验证输入的快递单号是否有效
+        function validateTrackingNumber(trackingNumber) {
+            // 清理输入：移除空格，转换为大写
+            const cleanNumber = trackingNumber.trim().toUpperCase();
+            
+            // 检查单号是否在有效列表中
+            return CONFIG.validTrackingNumbers.includes(cleanNumber);
+        }
+        
+        // 计算天数差（当前日期 - 发货日期）
+        function calculateDaysDifference(startDate, currentDate) {
+            const start = new Date(startDate);
+            const current = new Date(currentDate);
+            
+            // 设置为同一天的0点，避免时间影响
+            start.setHours(0, 0, 0, 0);
+            current.setHours(0, 0, 0, 0);
+            
+            // 计算天数差（毫秒转天）
+            const timeDiff = current.getTime() - start.getTime();
+            return Math.floor(timeDiff / (1000 * 3600 * 24));
+        }
+        
+        // 检查是否到达目标日期
+        function isTargetDate(targetDateStr) {
+            const targetDate = new Date(targetDateStr);
+            const currentDate = new Date();
+            
+            // 设置为同一天的0点，避免时间影响
+            targetDate.setHours(0, 0, 0, 0);
+            currentDate.setHours(0, 0, 0, 0);
+            
+            // 如果当前日期等于目标日期，返回true
+            return currentDate.getTime() === targetDate.getTime();
+        }
+        
+        // 生成时间线数据 - 武汉到成都的快递路线
+        function generateTimeline(startDate, currentDay) {
+            const timelineData = [];
+            const start = new Date(startDate);
+            
+            // 获取当前时间
+            const currentTime = getCurrentTime();
+            
+            // 计算目标到达日期（发货日期+2天，即第三天到达）
+            const targetArrivalDate = new Date(start);
+            targetArrivalDate.setDate(targetArrivalDate.getDate() + 2);
+            const hasArrived = currentDay >= 2;
+            
+            // 第1天：已发货 (1月19日)
+            // 只有在1月19日或之后才显示
+            const day1Date = new Date(start);
+            let day1Desc = "商家已发货，等待快递员取件。";
+            
+            // 如果是1月20日或之后，修改内容
+            if (currentDay >= 1) {
+                day1Desc = "包裹从武汉发出，包裹被带回该区域的快递网点，进行初步扫描和分拣，将去往 '四川 / 成都' 方向的包裹集中已送达。";
+            }
+            
+            if (currentDay >= 0) {
+                timelineData.push({
+                    day: 1,
+                    date: formatDate(day1Date),
+                    time: currentDay >= 0 ? currentTime : "",
+                    title: "已发货",
+                    description: day1Desc,
+                    isActive: currentDay >= 0,
+                    isCompleted: currentDay >= 0,
+                    shouldShow: currentDay >= 0
+                });
+            }
+            
+            // 第2天：运输中 (1月20日)
+            // 只有在1月20日或之后才显示
+            if (currentDay >= 1) {
+                const day2Date = new Date(start);
+                day2Date.setDate(day2Date.getDate() + 1);
+                
+                timelineData.push({
+                    day: 2,
+                    date: formatDate(day2Date),
+                    time: currentDay >= 1 ? currentTime : "",
+                    title: "运输中",
+                    description: "包裹抵达成都机场货运站，转运至成都双流航空港转运中心。已到达。",
+                    isActive: currentDay >= 1,
+                    isCompleted: currentDay >= 1,
+                    shouldShow: currentDay >= 1
+                });
+            }
+            
+            // 第3天：已送达 (1月21日)
+            // 只有在1月21日或之后才显示
+            if (currentDay >= 2) {
+                const day3Date = new Date(start);
+                day3Date.setDate(day3Date.getDate() + 2);
+                
+                timelineData.push({
+                    day: 3,
+                    date: formatDate(day3Date),
+                    time: currentDay >= 2 ? currentTime : "",
+                    title: "已送达",
+                    description: "包裹已到达客户指定地点。",
+                    isActive: currentDay >= 2,
+                    isCompleted: currentDay >= 2,
+                    shouldShow: currentDay >= 2
+                });
+            }
+            
+            return timelineData;
+        }
+        
+        // 格式化日期为中文
+        function formatDate(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const weekday = weekdays[date.getDay()];
+            return `${month}月${day}日 ${weekday}`;
+        }
+        
+        // 确定当前状态
+        function getCurrentStatus(dayDiff) {
+            if (dayDiff < 0) {
+                return { name: "未发货", className: "status-waiting" };
+            } else if (dayDiff === 0) {
+                return { name: "已发货", className: "status-waiting" };
+            } else if (dayDiff === 1) {
+                return { name: "运输中", className: "status-shipping" };
+            } else if (dayDiff >= 2) {
+                return { name: "已送达", className: "status-arrived" };
+            }
+            
+            return { name: "已发货", className: "status-waiting" };
+        }
+        
+        // 查询快递状态
+        function checkExpressStatus() {
+            const trackingNumber = document.getElementById('trackingNumber').value;
+            
+            // 隐藏所有可能显示的区域
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+            
+            // 模拟网络延迟
+            setTimeout(() => {
+                processQuery(trackingNumber);
+            }, 800);
+        }
+        
+        // 处理查询逻辑
+        function processQuery(trackingNumber) {
+            // 隐藏加载状态
+            document.getElementById('loader').style.display = 'none';
+            
+            // 验证单号
+            if (!validateTrackingNumber(trackingNumber)) {
+                // 显示错误信息
+                document.getElementById('errorSection').style.display = 'block';
+                
+                // 滚动到错误区域
+                setTimeout(() => {
+                    document.getElementById('errorSection').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 100);
+                return;
+            }
+            
+            // 单号有效，继续处理
+            const cleanNumber = trackingNumber.trim().toUpperCase();
+            
+            // 获取发货日期
+            let orderDate = CONFIG.shippingDates[cleanNumber];
+            
+            // 如果没有预设发货日期，使用今天
+            if (!orderDate) {
+                orderDate = new Date().toISOString().split('T')[0];
+            }
+            
+            const today = getCurrentDate();
+            
+            // 计算天数差
+            const dayDiff = calculateDaysDifference(orderDate, today);
+            
+            // 获取当前状态
+            const statusInfo = getCurrentStatus(dayDiff);
+            
+            // 更新状态显示
+            const statusElement = document.getElementById('currentStatus');
+            statusElement.textContent = statusInfo.name;
+            statusElement.className = "status-badge " + statusInfo.className;
+            
+            // 生成时间线
+            const timelineData = generateTimeline(orderDate, dayDiff);
+            const timelineElement = document.getElementById('timeline');
+            timelineElement.innerHTML = '';
+            
+            if (timelineData.length === 0) {
+                // 如果没有时间线数据，显示提示
+                timelineElement.innerHTML = '<p style="text-align: center; color: #666; padding: 20px 0;">包裹还未发货，请耐心等待。</p>';
+            } else {
+                // 显示时间线数据
+                timelineData.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    
+                    // 设置CSS类
+                    let className = 'timeline-item';
+                    if (item.isCompleted) {
+                        className += ' completed';
+                    }
+                    if (item.isActive) {
+                        className += ' active';
+                    }
+                    itemDiv.className = className;
+                    
+                    // 格式化时间显示
+                    let timeDisplay = item.date;
+                    if (item.time) {
+                        timeDisplay += ` ${item.time}`;
+                    }
+                    
+                    itemDiv.innerHTML = `
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">${item.title}</div>
+                            <div class="timeline-date">${timeDisplay}</div>
+                            <div class="timeline-desc">${item.description}</div>
+                        </div>
+                    `;
+                    
+                    timelineElement.appendChild(itemDiv);
+                });
+            }
+            
+            // 显示结果区域
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // 更新最后查询时间
+            updateTimeDisplay();
+            
+            // 滚动到结果区域
+            setTimeout(() => {
+                document.getElementById('resultSection').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新当前日期显示
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const weekday = weekdays[now.getDay()];
+            
+            document.getElementById('dateInfo').textContent = `${year}年${month}月${day}日 ${weekday}`;
+            
+            // 按回车键查询
+            document.getElementById('trackingNumber').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkExpressStatus();
+                }
+            });
+            
+            // 输入框获得焦点时全选文本
+            document.getElementById('trackingNumber').addEventListener('focus', function() {
+                this.select();
+            });
+        });
+        
+        // 添加页面可见性检测，当页面重新可见时更新时间
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateTimeDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
